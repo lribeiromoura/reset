@@ -951,7 +951,7 @@ Estado do S5 (26/10/2026): XP, cálculo de consistência semanal com versões de
 
 **Gate S6:** `AC-10`, `AC-11`, runbook e release checklist completos.
 
-Estado parcial do S6 (26/10/2026): perfil (nome e fuso), exportação JSON sem credenciais, exclusão confirmada com senha pelo endpoint nativo do Better Auth, páginas iniciais de privacidade/termos e PWA com fallback offline estão implementados no código. O service worker é restrito a arquivos estáticos e não intercepta API, onboarding ou páginas privadas para cache. Também foram adicionados `GET /api/health`, headers HTTP básicos e um runbook/checklist de operação Vercel. A validação do AC-10, instalação, acessibilidade e headers permanece pendente no Vercel. O aviso público ainda declara pendentes a identificação/contato do controlador, região/provedor e retenção de backups; por isso, não é documento final para lançamento. Alertas reais, banco/e-mail, deploy e smoke tests também permanecem pendentes.
+Estado parcial do S6 (26/10/2026): perfil (nome e fuso), exportação JSON sem credenciais, exclusão confirmada com senha pelo endpoint nativo do Better Auth, páginas iniciais de privacidade/termos e PWA com fallback offline estão implementados no código. O service worker é restrito a arquivos estáticos e não intercepta API, onboarding ou páginas privadas para cache. Também foram adicionados `GET /api/health`, headers HTTP básicos e um runbook/checklist de operação Vercel. O projeto `reset` foi publicado na Vercel e conectado ao projeto Supabase `reset`; a integração sincroniza as variáveis do banco em Production. O build de produção passou após corrigir erros TypeScript. O segredo Better Auth, SMTP, migrations de produção, ambientes Preview/Development, validação AC-10, instalação, acessibilidade, headers, alertas e smoke tests permanecem pendentes. O aviso público ainda declara pendentes a identificação/contato do controlador, região/provedor e retenção de backups; por isso, não é documento final para lançamento.
 
 ## Definition of Done por tarefa
 
@@ -979,12 +979,12 @@ Estado parcial do S6 (26/10/2026): perfil (nome e fuso), exportação JSON sem c
 ## Infraestrutura alvo
 
 - 1 projeto Next.js na Vercel (produção + previews de PR).
-- 1 instância/branch PostgreSQL de produção no provedor escolhido via Vercel Marketplace; banco de desenvolvimento/preview **separado**. Neon está excluído.
+- 1 projeto PostgreSQL de produção no Supabase, conectado ao projeto Vercel existente pela integração oficial; o banco de desenvolvimento/preview separado ainda precisa ser configurado. Neon está excluído.
 - Provedor de e-mail transacional com domínio autenticado (ex.: Resend), sem e-mails de produção disparados em preview para endereços aleatórios.
 - DNS / domínio de produto próprio e TLS em produção.
 - GitHub Actions valida o repositório; a integração Vercel cuida do deploy.
 
-> O provedor PostgreSQL ainda precisa ser escolhido e conectado no Vercel Marketplace. Não usar Neon.
+> O projeto Supabase existente `reset` foi conectado ao projeto Vercel `reset`. A integração sincroniza variáveis do Supabase no ambiente Production; Preview e Development ainda não estão configurados. Não usar Neon.
 
 ## Ambientes
 
@@ -1000,8 +1000,8 @@ Estado parcial do S6 (26/10/2026): perfil (nome e fuso), exportação JSON sem c
 
 | Variável | Quem usa | Observação |
 |---|---|---|
-| `DATABASE_URL` | Server | URL PostgreSQL do provedor escolhido, adequada ao runtime |
-| `DATABASE_URL_DIRECT` | Migrations | opcional, conexão direta para schema changes |
+| `DATABASE_URL` | Server | URL PostgreSQL adequada ao runtime; o código também aceita `POSTGRES_URL`/`POSTGRES_PRISMA_URL` da integração Supabase–Vercel |
+| `DATABASE_URL_DIRECT` | Migrations | opcional; pode usar `POSTGRES_URL_NON_POOLING` sincronizada pela integração para schema changes |
 | `BETTER_AUTH_SECRET` | Server | segredo longo gerado criptograficamente |
 | `BETTER_AUTH_URL` | Server | URL absoluta da origem da app por ambiente |
 | `BETTER_AUTH_TRUSTED_ORIGINS` | Server | se necessário, lista explícita de origens |
@@ -1071,7 +1071,7 @@ As decisões listadas em “aprovada” são **recomendações da especificaçã
 |---|---|---|---|
 | ADR-001 | Next.js 16 App Router em Vercel | alinhamento full-stack e deploy | separar API depois, se necessário |
 | ADR-002 | Better Auth | controle sobre identidade + integração com Next | Auth.js, Clerk |
-| ADR-003 | Drizzle + PostgreSQL via provedor Vercel a escolher | tipagem e migrations; Neon excluído pelo solicitante | Prisma, Supabase ou outro PostgreSQL disponível no Vercel Marketplace |
+| ADR-003 | Drizzle + PostgreSQL no Supabase existente, conectado à Vercel pela integração oficial | tipagem, migrations e reutilização do projeto Supabase criado pelo solicitante; Neon excluído | banco separado para Preview/Development ainda pendente |
 | ADR-004 | Monólito modular | baixa complexidade operacional | microsserviços prematuros |
 | ADR-005 | PWA responsiva antes de app nativo | entrega rápida e um único código | Expo/React Native fase 2 |
 | ADR-006 | 66 dias como jornada orientativa | narrativa clara sem fazer promessa científica | 30/90 dias configuráveis futuramente |

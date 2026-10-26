@@ -9,7 +9,7 @@ export function createAuthOptions() {
   const mayUseBuildDefaults = process.env.NODE_ENV !== "production" || isProductionBuild;
   const baseURL = process.env.BETTER_AUTH_URL ?? (mayUseBuildDefaults ? "http://localhost:3000" : undefined);
   const secret = process.env.BETTER_AUTH_SECRET ?? (mayUseBuildDefaults ? randomBytes(32).toString("base64url") : undefined);
-  const databaseUrl = process.env.DATABASE_URL ?? (mayUseBuildDefaults ? "postgres://reset:reset@localhost:5432/reset" : undefined);
+  const databaseUrl = process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? process.env.POSTGRES_PRISMA_URL ?? (mayUseBuildDefaults ? "postgres://reset:reset@localhost:5432/reset" : undefined);
 
   if (!baseURL || !secret || !databaseUrl) {
     throw new Error("BETTER_AUTH_URL, BETTER_AUTH_SECRET e DATABASE_URL são obrigatórias em produção.");
