@@ -182,7 +182,7 @@ Pessoas tentam mudar hábitos sem clareza sobre ações diárias, abandonam apli
 1. Tela de boas-vindas com proposta clara (sem promessas científicas de transformação obrigatória).
 2. Escolha até 2 áreas: Saúde, Foco, Estudos, Organização, Bem-estar.
 3. Escolha uma meta em texto curto (<= 120 caracteres) e um fuso horário IANA (sugerido pelo navegador).
-4. Escolha de 1 a 3 hábitos de sugestões editáveis ou criados do zero.
+4. Escolha de 1 a 3 hábitos entre sugestões editáveis agrupadas pelas áreas Saúde, Foco, Estudos, Organização e Bem-estar, ou crie do zero. As sugestões são ações pequenas e específicas; a agenda sugerida pode ser ajustada antes de iniciar.
 5. Mostra resumo da jornada de 66 dias (prazo inspiracional, sem garantir mudança de comportamento).
 6. Salva jornada + hábitos em transação e direciona ao Dashboard.
 
@@ -891,7 +891,7 @@ Estado da implementação (26/10/2026): Better Auth, schema Drizzle gerado, cada
 
 ## S2 — Onboarding e jornada
 
-Estado da implementação (26/10/2026): formulário responsivo em três etapas, validação Zod, criação transacional do perfil/jornada/hábitos, lock da conta para submissões simultâneas, índice parcial de jornada ativa, GET/POST `/api/v1/journey` e primeira tela Hoje com dados persistidos. A migration `0001_faithful_jack_power.sql` foi gerada, mas não aplicada. Testes com banco e submissões concorrentes reais ainda dependem de `DATABASE_URL` de desenvolvimento.
+Estado da implementação (26/10/2026): formulário responsivo em três etapas, validação Zod, criação transacional do perfil/jornada/hábitos, lock da conta para submissões simultâneas, índice parcial de jornada ativa, GET/POST `/api/v1/journey` e primeira tela Hoje com dados persistidos. O onboarding oferece quinze sugestões de ações pequenas e editáveis, agrupadas pelas cinco áreas do Reset, mantendo a seleção de um a três hábitos (FR-02, US-02, AC-01). As migrations de autenticação e domínio foram aplicadas ao Supabase de produção em 26/10/2026; validação funcional e de concorrência permanece pendente para o Vercel, conforme solicitado.
 
 - [ ] `T-201` Models e migração de `user_profiles`, `journeys`, `habits`, `habit_schedule_versions`.
 - [ ] `T-202` Fluxo de onboarding com Zod.

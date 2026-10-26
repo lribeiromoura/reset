@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { focusAreaValues, onboardingSchema, type FocusArea } from "@/features/journey/domain/onboarding-schema";
 import { SignOutButton } from "@/features/auth/ui/sign-out-button";
 
-type HabitDraft = { id: string; title: string; emoji: string; scheduleDays: number[]; selected: boolean };
+type HabitDraft = { id: string; title: string; emoji: string; scheduleDays: number[]; selected: boolean; category: FocusArea | "custom" };
 
 const areaLabels: Record<FocusArea, string> = {
   health: "Saúde",
@@ -23,9 +23,21 @@ const timezoneChoices = [
   "America/Recife", "America/Bahia", "America/Araguaina", "America/Maceio", "America/Santarem",
 ];
 const initialHabits: HabitDraft[] = [
-  { id: "walk", title: "Caminhar por 10 minutos", emoji: "🚶", scheduleDays: [1, 2, 3, 4, 5, 6, 7], selected: true },
-  { id: "read", title: "Ler por 10 minutos", emoji: "📚", scheduleDays: [1, 2, 3, 4, 5, 6, 7], selected: true },
-  { id: "organize", title: "Organizar um espaço", emoji: "🧺", scheduleDays: [1, 2, 3, 4, 5], selected: false },
+  { id: "walk", title: "Caminhar por 10 minutos", emoji: "🚶", scheduleDays: [1, 2, 3, 4, 5, 6, 7], selected: true, category: "health" },
+  { id: "stretch", title: "Alongar por 5 minutos", emoji: "🧘", scheduleDays: [1, 2, 3, 4, 5], selected: false, category: "health" },
+  { id: "water", title: "Tomar um copo de água ao acordar", emoji: "💧", scheduleDays: [1, 2, 3, 4, 5, 6, 7], selected: false, category: "health" },
+  { id: "focus-task", title: "Dedicar 15 minutos a uma tarefa", emoji: "🎯", scheduleDays: [1, 2, 3, 4, 5], selected: false, category: "focus" },
+  { id: "daily-priorities", title: "Anotar as três prioridades do dia", emoji: "📝", scheduleDays: [1, 2, 3, 4, 5], selected: false, category: "focus" },
+  { id: "screen-break", title: "Fazer uma pausa de 5 minutos sem telas", emoji: "🌿", scheduleDays: [1, 2, 3, 4, 5, 6, 7], selected: false, category: "focus" },
+  { id: "read", title: "Ler por 10 minutos", emoji: "📚", scheduleDays: [1, 2, 3, 4, 5, 6, 7], selected: true, category: "studies" },
+  { id: "study", title: "Estudar um assunto por 15 minutos", emoji: "✏️", scheduleDays: [1, 2, 3, 4, 5], selected: false, category: "studies" },
+  { id: "review-notes", title: "Revisar anotações por 5 minutos", emoji: "🔎", scheduleDays: [1, 3, 5], selected: false, category: "studies" },
+  { id: "organize", title: "Organizar um espaço pequeno", emoji: "🧺", scheduleDays: [1, 2, 3, 4, 5], selected: false, category: "organization" },
+  { id: "plan-tomorrow", title: "Planejar o primeiro passo de amanhã", emoji: "📅", scheduleDays: [1, 2, 3, 4, 5], selected: false, category: "organization" },
+  { id: "put-away-five", title: "Guardar cinco coisas fora do lugar", emoji: "🧹", scheduleDays: [1, 2, 3, 4, 5, 6, 7], selected: false, category: "organization" },
+  { id: "breathe", title: "Respirar com calma por 2 minutos", emoji: "🌬️", scheduleDays: [1, 2, 3, 4, 5, 6, 7], selected: false, category: "wellbeing" },
+  { id: "outside", title: "Ficar 10 minutos ao ar livre", emoji: "☀️", scheduleDays: [1, 3, 5, 6, 7], selected: false, category: "wellbeing" },
+  { id: "enjoyable", title: "Reservar 10 minutos para algo prazeroso", emoji: "🌼", scheduleDays: [1, 2, 3, 4, 5, 6, 7], selected: false, category: "wellbeing" },
 ];
 const subscribeTimezone = () => () => undefined;
 const getBrowserTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Sao_Paulo";
@@ -75,7 +87,7 @@ export function OnboardingWizard({ name }: { name: string }) {
       return;
     }
     const id = `custom-${crypto.randomUUID()}`;
-    setHabits((current) => [...current, { id, title: "", emoji: "", scheduleDays: [1, 2, 3, 4, 5, 6, 7], selected: true }]);
+    setHabits((current) => [...current, { id, title: "", emoji: "", scheduleDays: [1, 2, 3, 4, 5, 6, 7], selected: true, category: "custom" }]);
     setError("");
   }
 
@@ -172,18 +184,24 @@ export function OnboardingWizard({ name }: { name: string }) {
           <h1 id="onboarding-title">Escolha seus primeiros hábitos.</h1>
           <p className="onboarding-lede">Comece com um a três. Você poderá ajustar sua rotina depois.</p>
           <div className="habit-picks">
-            {habits.map((habit) => <article className={`habit-pick${habit.selected ? " is-selected" : ""}`} key={habit.id}>
-              <label className="habit-pick-choice"><input type="checkbox" checked={habit.selected} onChange={() => toggleHabit(habit.id)} /><span className="habit-pick-emoji" aria-hidden="true">{habit.emoji || "✳"}</span><span>{habit.id.startsWith("custom-") ? "Seu hábito" : habit.title}</span></label>
-              {habit.selected && <div className="habit-pick-editor">
-                <label className="onboarding-label">Nome do hábito<input maxLength={80} value={habit.title} onChange={(event) => updateHabit(habit.id, { title: event.target.value })} /></label>
-                <label className="onboarding-label emoji-field">Símbolo <input maxLength={16} value={habit.emoji} onChange={(event) => updateHabit(habit.id, { emoji: event.target.value })} aria-label={`Símbolo para ${habit.title || "novo hábito"}`} /></label>
-                <fieldset className="schedule-fieldset"><legend>Em quais dias?</legend><div className="schedule-days">{weekDays.map((day, index) => {
-                  const value = index + 1;
-                  const active = habit.scheduleDays.includes(value);
-                  return <button key={day} type="button" className={active ? "active" : ""} aria-pressed={active} aria-label={`${weekDayNames[index]}${active ? " agendado" : " não agendado"}`} onClick={() => updateHabit(habit.id, { scheduleDays: active ? habit.scheduleDays.filter((item) => item !== value) : [...habit.scheduleDays, value].sort((a, b) => a - b) })}>{day}</button>;
-                })}</div></fieldset>
-              </div>}
-            </article>)}
+            {[
+              ...focusAreaValues.map((area) => ({ id: area, title: areaLabels[area], items: habits.filter((habit) => habit.category === area) })),
+              { id: "custom" as const, title: "Criados por você", items: habits.filter((habit) => habit.category === "custom") },
+            ].filter((group) => group.items.length > 0).map((group) => <section className="habit-pick-group" key={group.id} aria-labelledby={`habit-group-${group.id}`}>
+              <h2 id={`habit-group-${group.id}`}>{group.title}</h2>
+              <div className="habit-pick-list">{group.items.map((habit) => <article className={`habit-pick${habit.selected ? " is-selected" : ""}`} key={habit.id}>
+                <label className="habit-pick-choice"><input type="checkbox" checked={habit.selected} onChange={() => toggleHabit(habit.id)} /><span className="habit-pick-emoji" aria-hidden="true">{habit.emoji || "✳"}</span><span>{habit.id.startsWith("custom-") ? "Seu hábito" : habit.title}</span></label>
+                {habit.selected && <div className="habit-pick-editor">
+                  <label className="onboarding-label">Nome do hábito<input maxLength={80} value={habit.title} onChange={(event) => updateHabit(habit.id, { title: event.target.value })} /></label>
+                  <label className="onboarding-label emoji-field">Símbolo <input maxLength={16} value={habit.emoji} onChange={(event) => updateHabit(habit.id, { emoji: event.target.value })} aria-label={`Símbolo para ${habit.title || "novo hábito"}`} /></label>
+                  <fieldset className="schedule-fieldset"><legend>Em quais dias?</legend><div className="schedule-days">{weekDays.map((day, index) => {
+                    const value = index + 1;
+                    const active = habit.scheduleDays.includes(value);
+                    return <button key={day} type="button" className={active ? "active" : ""} aria-pressed={active} aria-label={`${weekDayNames[index]}${active ? " agendado" : " não agendado"}`} onClick={() => updateHabit(habit.id, { scheduleDays: active ? habit.scheduleDays.filter((item) => item !== value) : [...habit.scheduleDays, value].sort((a, b) => a - b) })}>{day}</button>;
+                  })}</div></fieldset>
+                </div>}
+              </article>)}</div>
+            </section>)}
           </div>
           {selectedHabits.length < 3 && <button className="add-habit-button" type="button" onClick={addCustomHabit}><span aria-hidden="true">＋</span> Criar um hábito do zero</button>}
           {error && <p className="auth-feedback error-feedback" role="alert">{error}</p>}
