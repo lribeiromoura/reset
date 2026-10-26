@@ -65,7 +65,7 @@ export async function POST(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   context: RouteContext<"/api/v1/habits/[habitId]/completions/today">,
 ) {
   const requestId = randomUUID();
