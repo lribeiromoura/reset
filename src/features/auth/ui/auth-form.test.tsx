@@ -6,9 +6,6 @@ import { AuthForm } from "./auth-form";
 const mocks = vi.hoisted(() => ({
   signUp: vi.fn(),
   signIn: vi.fn(),
-  requestPasswordReset: vi.fn(),
-  sendVerificationEmail: vi.fn(),
-  resetPassword: vi.fn(),
   replace: vi.fn(),
   refresh: vi.fn(),
 }));
@@ -17,9 +14,6 @@ vi.mock("@/lib/auth-client", () => ({
   authClient: {
     signUp: { email: mocks.signUp },
     signIn: { email: mocks.signIn },
-    requestPasswordReset: mocks.requestPasswordReset,
-    sendVerificationEmail: mocks.sendVerificationEmail,
-    resetPassword: mocks.resetPassword,
   },
 }));
 
@@ -34,7 +28,7 @@ describe("authentication forms", () => {
     vi.clearAllMocks();
   });
 
-  it("creates an account and gives a neutral email confirmation response", async () => {
+  it("creates an account and opens onboarding immediately", async () => {
     mocks.signUp.mockResolvedValue({ error: null });
     const user = userEvent.setup();
     render(<AuthForm mode="signup" />);
@@ -50,22 +44,11 @@ describe("authentication forms", () => {
       password: "senha-segura-com-12",
       callbackURL: "/onboarding",
     });
-    expect(await screen.findByRole("status")).toHaveTextContent("enviamos um link de confirmação");
+    expect(mocks.replace).toHaveBeenCalledWith("/onboarding");
   });
 
-  it("does not reveal whether a password reset email belongs to an account", async () => {
-    mocks.requestPasswordReset.mockResolvedValue({ error: null });
-    const user = userEvent.setup();
-    render(<AuthForm mode="forgot" />);
-
-    await user.type(screen.getByLabelText("E-mail"), "alguem@example.com");
-    await user.click(screen.getByRole("button", { name: "Enviar instruções" }));
-
-    expect(await screen.findByRole("status")).toHaveTextContent("Se houver uma conta para esse e-mail");
-  });
-
-  it("offers email confirmation after a rejected unverified login", async () => {
-    mocks.signIn.mockResolvedValue({ error: { status: 403, message: "Forbidden" } });
+  it("shows an error when sign-in is rejected", async () => {
+    mocks.signIn.mockResolvedValue({ error: { status: 401, message: "Invalid email or password" } });
     const user = userEvent.setup();
     render(<AuthForm mode="signin" />);
 
@@ -73,7 +56,7 @@ describe("authentication forms", () => {
     await user.type(screen.getByLabelText(/^Senha/), "senha-segura-com-12");
     await user.click(screen.getByRole("button", { name: "Entrar" }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent("Confirme seu e-mail para entrar");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid email or password");
     expect(mocks.replace).not.toHaveBeenCalled();
   });
 });

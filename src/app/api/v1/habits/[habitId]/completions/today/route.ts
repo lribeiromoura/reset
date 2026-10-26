@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { CompletionConflictError, completeHabitForToday, HabitNotFoundError, uncompleteHabitForToday } from "@/features/habits/application/completion-service";
-import { requireVerifiedPrincipal, UnauthorizedError } from "@/features/auth/domain/session-policy";
+import { requireAuthenticatedPrincipal, UnauthorizedError } from "@/features/auth/domain/session-policy";
 import { auth } from "@/lib/auth";
 import { createDb } from "@/lib/db";
 
@@ -56,7 +56,7 @@ export async function POST(
   if (!parsedHabitId.success) return errorResponse(400, "INVALID_HABIT_ID", "O identificador do hábito é inválido.", requestId);
 
   try {
-    const principal = requireVerifiedPrincipal(await auth.api.getSession({ headers: request.headers }));
+    const principal = requireAuthenticatedPrincipal(await auth.api.getSession({ headers: request.headers }));
     const data = await completeHabitForToday(createDb(), principal.id, parsedHabitId.data);
     return NextResponse.json({ data }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
@@ -73,7 +73,7 @@ export async function DELETE(
   if (!parsedHabitId.success) return errorResponse(400, "INVALID_HABIT_ID", "O identificador do hábito é inválido.", requestId);
 
   try {
-    const principal = requireVerifiedPrincipal(await auth.api.getSession({ headers: request.headers }));
+    const principal = requireAuthenticatedPrincipal(await auth.api.getSession({ headers: request.headers }));
     const data = await uncompleteHabitForToday(createDb(), principal.id, parsedHabitId.data);
     return NextResponse.json({ data }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {

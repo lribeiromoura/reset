@@ -14,7 +14,7 @@ export default function PrivacyPage() {
       <h2>Para que usamos</h2>
       <p>Usamos esses dados para autenticar sua conta, mostrar sua jornada e calcular o progresso que você pediu. Reflexões são privadas e não são usadas para publicidade ou analytics. O MVP não inclui analytics de comportamento.</p>
       <h2>Serviços e armazenamento</h2>
-      <p>A aplicação usa PostgreSQL e envio de e-mail transacional. O provedor e a região de hospedagem ainda serão escolhidos na configuração do ambiente Vercel; nenhum dado real deve ser inserido antes dessa decisão e da atualização deste aviso.</p>
+      <p>A aplicação usa um banco PostgreSQL gerenciado no Supabase. A V1 não envia e-mails de autenticação. O prazo de retenção de backups e o contato responsável por privacidade ainda precisam ser definidos antes do lançamento.</p>
       <h2>Retenção, cópia e exclusão</h2>
       <p>Você pode baixar uma cópia em JSON e solicitar a exclusão da conta nas configurações. Os dados associados à conta são removidos pelo fluxo de exclusão. Prazo de retenção de backups e contato responsável por privacidade ainda precisam ser definidos antes do lançamento.</p>
       <h2>Cookies e segurança</h2>

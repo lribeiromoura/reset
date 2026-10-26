@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { asc, eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { requireVerifiedPrincipal, UnauthorizedError } from "@/features/auth/domain/session-policy";
+import { requireAuthenticatedPrincipal, UnauthorizedError } from "@/features/auth/domain/session-policy";
 import { auth } from "@/lib/auth";
 import { createDb } from "@/lib/db";
 import { user } from "@/lib/db/auth-schema";
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const requestId = randomUUID();
   try {
-    const principal = requireVerifiedPrincipal(await auth.api.getSession({ headers: request.headers }));
+    const principal = requireAuthenticatedPrincipal(await auth.api.getSession({ headers: request.headers }));
     const db = createDb();
     const [identity] = await db.select({ id: user.id, name: user.name, email: user.email, createdAt: user.createdAt })
       .from(user).where(eq(user.id, principal.id)).limit(1);

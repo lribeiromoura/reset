@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getAccountProfile, updateAccountProfile } from "@/features/account/application/profile-service";
 import { profileUpdateSchema } from "@/features/account/domain/profile-schema";
-import { requireVerifiedPrincipal, UnauthorizedError } from "@/features/auth/domain/session-policy";
+import { requireAuthenticatedPrincipal, UnauthorizedError } from "@/features/auth/domain/session-policy";
 import { auth } from "@/lib/auth";
 import { createDb } from "@/lib/db";
 
@@ -31,7 +31,7 @@ async function parseBody(request: Request, requestId: string) {
 export async function GET(request: Request) {
   const requestId = randomUUID();
   try {
-    const principal = requireVerifiedPrincipal(await auth.api.getSession({ headers: request.headers }));
+    const principal = requireAuthenticatedPrincipal(await auth.api.getSession({ headers: request.headers }));
     const data = await getAccountProfile(createDb(), principal.id);
     if (!data) return errorResponse(404, "NOT_FOUND", "Perfil não encontrado.", requestId);
     return NextResponse.json({ data }, { headers: { "Cache-Control": "no-store" } });
@@ -48,7 +48,7 @@ export async function PATCH(request: Request) {
   const parsed = profileUpdateSchema.safeParse(parsedBody.body);
   if (!parsed.success) return errorResponse(422, "VALIDATION_ERROR", "Confira o nome e o fuso horário informados.", requestId);
   try {
-    const principal = requireVerifiedPrincipal(await auth.api.getSession({ headers: request.headers }));
+    const principal = requireAuthenticatedPrincipal(await auth.api.getSession({ headers: request.headers }));
     const data = await updateAccountProfile(createDb(), principal.id, parsed.data);
     if (!data) return errorResponse(404, "NOT_FOUND", "Perfil não encontrado.", requestId);
     return NextResponse.json({ data }, { headers: { "Cache-Control": "no-store" } });

@@ -2,7 +2,6 @@ import { randomBytes } from "node:crypto";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { createDb } from "@/lib/db";
 import * as schema from "@/lib/db/auth-schema";
-import { sendAuthEmail } from "@/lib/email/send-auth-email";
 
 export function createAuthOptions() {
   const isProductionBuild = process.env.NEXT_PHASE === "phase-production-build";
@@ -31,33 +30,10 @@ export function createAuthOptions() {
     }),
     emailAndPassword: {
       enabled: true,
-      requireEmailVerification: true,
-      autoSignIn: false,
+      requireEmailVerification: false,
+      autoSignIn: true,
       minPasswordLength: 12,
       maxPasswordLength: 128,
-      revokeSessionsOnPasswordReset: true,
-      sendResetPassword: async ({ user, url }: { user: { email: string }; url: string }) => {
-        await sendAuthEmail({
-          to: user.email,
-          subject: "Redefina sua senha do Reset",
-          text: "Recebemos um pedido para redefinir sua senha. Use o link seguro abaixo:",
-          link: url,
-        });
-      },
-    },
-    emailVerification: {
-      sendOnSignUp: true,
-      sendOnSignIn: true,
-      autoSignInAfterVerification: true,
-      expiresIn: 60 * 60,
-      sendVerificationEmail: async ({ user, url }: { user: { email: string }; url: string }) => {
-        await sendAuthEmail({
-          to: user.email,
-          subject: "Confirme seu e-mail no Reset",
-          text: "Confirme seu endereço de e-mail para continuar no Reset:",
-          link: url,
-        });
-      },
     },
     session: {
       expiresIn: 60 * 60 * 24 * 7,
@@ -72,8 +48,6 @@ export function createAuthOptions() {
       customRules: {
         "/sign-in/email": { window: 60, max: 5 },
         "/sign-up/email": { window: 60, max: 5 },
-        "/request-password-reset": { window: 60, max: 3 },
-        "/send-verification-email": { window: 60, max: 3 },
       },
     },
   };

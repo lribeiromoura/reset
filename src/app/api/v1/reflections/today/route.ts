@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { deleteReflectionForToday, getReflectionForToday, saveReflectionForToday } from "@/features/journal/application/reflection-service";
 import { reflectionSchema } from "@/features/journal/domain/reflection-schema";
-import { requireVerifiedPrincipal, UnauthorizedError } from "@/features/auth/domain/session-policy";
+import { requireAuthenticatedPrincipal, UnauthorizedError } from "@/features/auth/domain/session-policy";
 import { auth } from "@/lib/auth";
 import { createDb } from "@/lib/db";
 
@@ -34,7 +34,7 @@ async function parseBody(request: Request, requestId: string) {
 export async function GET(request: Request) {
   const requestId = randomUUID();
   try {
-    const principal = requireVerifiedPrincipal(await auth.api.getSession({ headers: request.headers }));
+    const principal = requireAuthenticatedPrincipal(await auth.api.getSession({ headers: request.headers }));
     const data = await getReflectionForToday(createDb(), principal.id);
     return NextResponse.json({ data }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
@@ -50,7 +50,7 @@ export async function PUT(request: Request) {
   if (!parsed.success) return errorResponse(422, "VALIDATION_ERROR", "Escolha um humor e limite sua reflexão a 500 caracteres.", requestId);
 
   try {
-    const principal = requireVerifiedPrincipal(await auth.api.getSession({ headers: request.headers }));
+    const principal = requireAuthenticatedPrincipal(await auth.api.getSession({ headers: request.headers }));
     const data = await saveReflectionForToday(createDb(), principal.id, parsed.data);
     return NextResponse.json({ data }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
@@ -61,7 +61,7 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   const requestId = randomUUID();
   try {
-    const principal = requireVerifiedPrincipal(await auth.api.getSession({ headers: request.headers }));
+    const principal = requireAuthenticatedPrincipal(await auth.api.getSession({ headers: request.headers }));
     const data = await deleteReflectionForToday(createDb(), principal.id);
     return NextResponse.json({ data }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {

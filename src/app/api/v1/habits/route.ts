@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createHabitForUser, HabitServiceError, listHabitsForUser } from "@/features/habits/application/habit-service";
 import { createHabitSchema } from "@/features/habits/domain/habit-schema";
-import { requireVerifiedPrincipal, UnauthorizedError } from "@/features/auth/domain/session-policy";
+import { requireAuthenticatedPrincipal, UnauthorizedError } from "@/features/auth/domain/session-policy";
 import { auth } from "@/lib/auth";
 import { createDb } from "@/lib/db";
 
@@ -45,7 +45,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const principal = requireVerifiedPrincipal(await auth.api.getSession({ headers: request.headers }));
+    const principal = requireAuthenticatedPrincipal(await auth.api.getSession({ headers: request.headers }));
     const data = await listHabitsForUser(createDb(), principal.id, includeArchivedValue === "true");
     return NextResponse.json({ data }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return errorResponse(422, "VALIDATION_ERROR", "Revise o nome e os dias escolhidos para o hábito.", requestId);
 
   try {
-    const principal = requireVerifiedPrincipal(await auth.api.getSession({ headers: request.headers }));
+    const principal = requireAuthenticatedPrincipal(await auth.api.getSession({ headers: request.headers }));
     const data = await createHabitForUser(createDb(), principal.id, parsed.data);
     return NextResponse.json({ data }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {

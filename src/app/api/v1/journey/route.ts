@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { createDb } from "@/lib/db";
-import { requireVerifiedPrincipal, UnauthorizedError } from "@/features/auth/domain/session-policy";
+import { requireAuthenticatedPrincipal, UnauthorizedError } from "@/features/auth/domain/session-policy";
 import { createJourneyForUser, getJourneyOverview, JourneyConflictError } from "@/features/journey/application/journey-service";
 import { onboardingSchema } from "@/features/journey/domain/onboarding-schema";
 
@@ -15,7 +15,7 @@ function errorResponse(status: number, code: string, message: string, requestId:
 
 async function getPrincipal(request: Request) {
   const session = await auth.api.getSession({ headers: request.headers });
-  return requireVerifiedPrincipal(session);
+  return requireAuthenticatedPrincipal(session);
 }
 
 export async function GET(request: Request) {

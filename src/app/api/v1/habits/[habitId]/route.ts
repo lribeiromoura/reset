@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { archiveHabitForUser, HabitServiceError, updateHabitForUser } from "@/features/habits/application/habit-service";
 import { updateHabitSchema } from "@/features/habits/domain/habit-schema";
-import { requireVerifiedPrincipal, UnauthorizedError } from "@/features/auth/domain/session-policy";
+import { requireAuthenticatedPrincipal, UnauthorizedError } from "@/features/auth/domain/session-policy";
 import { auth } from "@/lib/auth";
 import { createDb } from "@/lib/db";
 
@@ -54,7 +54,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/v1/hab
   if (!parsed.success) return errorResponse(422, "VALIDATION_ERROR", "Revise as informações do hábito.", requestId);
 
   try {
-    const principal = requireVerifiedPrincipal(await auth.api.getSession({ headers: request.headers }));
+    const principal = requireAuthenticatedPrincipal(await auth.api.getSession({ headers: request.headers }));
     const data = await updateHabitForUser(createDb(), principal.id, parsedId.data, parsed.data);
     if (!data) return errorResponse(404, "HABIT_NOT_FOUND", "Hábito não encontrado.", requestId);
     return NextResponse.json({ data }, { headers: { "Cache-Control": "no-store" } });
@@ -69,7 +69,7 @@ export async function DELETE(request: Request, context: RouteContext<"/api/v1/ha
   if (!parsedId.success) return errorResponse(400, "INVALID_HABIT_ID", "O identificador do hábito é inválido.", requestId);
 
   try {
-    const principal = requireVerifiedPrincipal(await auth.api.getSession({ headers: request.headers }));
+    const principal = requireAuthenticatedPrincipal(await auth.api.getSession({ headers: request.headers }));
     const data = await archiveHabitForUser(createDb(), principal.id, parsedId.data);
     if (!data) return errorResponse(404, "HABIT_NOT_FOUND", "Hábito não encontrado.", requestId);
     return NextResponse.json({ data: { ...data, status: "archived" } }, { headers: { "Cache-Control": "no-store" } });

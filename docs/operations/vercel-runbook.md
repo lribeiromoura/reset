@@ -1,14 +1,14 @@
 # Operação e release do Reset na Vercel
 
-Este runbook é um roteiro para a configuração inicial. O banco, o provedor SMTP, o domínio, os responsáveis e os alertas ainda precisam ser preenchidos no ambiente escolhido. **Não conectar previews ao banco de produção.** Neon está excluído.
+Este runbook é um roteiro para a configuração inicial. O banco, o domínio, os responsáveis e os alertas ainda precisam ser preenchidos no ambiente escolhido. **Não conectar previews ao banco de produção.** Neon está excluído.
 
 ## Preparação dos ambientes
 
-Criar ambientes separados para Preview e Production. Antes do primeiro deploy funcional, escolher um PostgreSQL gerenciado no Vercel Marketplace e configurar `DATABASE_URL` por ambiente. Configurar também `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `BETTER_AUTH_TRUSTED_ORIGINS`, `SMTP_URL` e `EMAIL_FROM`. `DATABASE_URL_DIRECT` é opcional e deve ser usada apenas na etapa controlada de migrations.
+Criar ambientes separados para Preview e Production. Configurar `DATABASE_URL`, `BETTER_AUTH_SECRET` e `BETTER_AUTH_URL` por ambiente. `DATABASE_URL_DIRECT` é opcional e deve ser usada apenas na etapa controlada de migrations.
 
 - Production usa banco e credenciais exclusivos de produção.
-- Preview usa banco vazio/isolado e destinatários de e-mail sob controle da equipe.
-- O domínio de produção e o remetente de e-mail precisam estar autenticados antes de liberar cadastro.
+- Preview usa banco vazio/isolado.
+- O domínio de produção precisa estar configurado antes de liberar o acesso.
 - Segredos não devem aparecer em logs, commits, `NEXT_PUBLIC_*` ou screenshots.
 - Atualizar os avisos de privacidade e termos com entidade responsável, contato, região de armazenamento e retenção real de backups.
 
@@ -17,10 +17,10 @@ Criar ambientes separados para Preview e Production. Antes do primeiro deploy fu
 ### Antes do preview
 
 - [ ] `pnpm install --frozen-lockfile`, lint, typecheck, testes e build aprovados no CI.
-- [ ] Variáveis de Preview configuradas, inclusive banco isolado e SMTP seguro para QA.
+- [ ] Variáveis de Preview configuradas, inclusive banco isolado.
 - [ ] Migration revisada em SQL e aplicada somente ao banco de Preview.
 - [ ] URL de Preview adicionada explicitamente às origens Better Auth permitidas para Preview.
-- [ ] Fluxos críticos revisados: cadastro/verificação, login, onboarding, Hoje, hábitos, diário, exportação e exclusão.
+- [ ] Fluxos críticos revisados: cadastro, login, onboarding, Hoje, hábitos, diário, exportação e exclusão.
 - [ ] PWA, fallback offline, teclado, foco e leitor de tela revisados no preview.
 - [ ] Content Security Policy definida em modo de relatório/revisada no preview antes de ser aplicada.
 
@@ -28,13 +28,13 @@ Criar ambientes separados para Preview e Production. Antes do primeiro deploy fu
 
 - [ ] Decisão de provedor PostgreSQL, região, plano, backup/PITR, retenção e responsável registrada.
 - [ ] Banco de produção é exclusivo; restauração de backup foi ensaiada em ambiente separado.
-- [ ] Domínio HTTPS, URL canônica, trusted origins e remetente verificado conferidos.
+- [ ] Domínio HTTPS, URL canônica e trusted origins conferidos.
 - [ ] Política de privacidade e termos revisados para a operação real e canal de contato publicado.
-- [ ] Plano de monitoramento e alertas para 5xx, indisponibilidade de banco, falha de e-mail e latência está ativo.
+- [ ] Plano de monitoramento e alertas para 5xx, indisponibilidade de banco e latência está ativo.
 - [ ] Migration aprovada e compatível com a versão que será promovida.
 - [ ] Smoke tests pós-deploy aprovados; rollback anterior continua disponível.
 
-Não promover a produção se algum item necessário a dados reais, restauração, e-mail ou contato de privacidade estiver pendente.
+Não promover a produção se algum item necessário a dados reais, restauração ou contato de privacidade estiver pendente.
 
 ## Monitoramento
 
@@ -62,13 +62,6 @@ Não promover a produção se algum item necessário a dados reais, restauraçã
 3. Corrigir a conexão pelo painel/segredos da Vercel e verificar `/api/health`.
 4. Se houve corrupção ou perda de dados, suspender alterações e seguir o procedimento aprovado de restauração/PITR do provedor.
 
-### E-mail de autenticação indisponível
-
-1. Conferir logs do envio sem copiar links/token para tickets ou conversas.
-2. Verificar SMTP, remetente e autenticação do domínio no provedor escolhido.
-3. Não desabilitar verificação de e-mail para contornar a falha.
-4. Informar usuários afetados após o fluxo de verificação voltar a funcionar.
-
 ### Rollback e migrations
 
 - Rollback do código pode ser iniciado pela Vercel depois de verificar compatibilidade do schema.
@@ -78,4 +71,4 @@ Não promover a produção se algum item necessário a dados reais, restauraçã
 
 ## Estado atual
 
-O projeto ainda não está conectado à Vercel nem a provedores de banco/e-mail. O runbook não substitui essas configurações e nenhum deploy ou teste de fumaça foi executado.
+O projeto Reset está conectado ao repositório GitHub, à Vercel e ao Supabase existente. O segredo Better Auth e a URL pública estão configurados em Production. As migrations do banco ainda precisam ser aplicadas antes do fluxo de cadastro/login funcionar. A V1 não usa SMTP, confirmação de e-mail ou recuperação de senha.

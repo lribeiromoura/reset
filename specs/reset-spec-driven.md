@@ -147,7 +147,7 @@ Pessoas tentam mudar hábitos sem clareza sobre ações diárias, abandonam apli
 
 | ID | Funcionalidade | Prioridade | Regra de aceite resumida |
 |---|---|---|---|
-| FR-01 | Cadastro, login, logout, verificação, reset | P0 | Conta possui sessão gerenciada pelo Better Auth |
+| FR-01 | Cadastro, login e logout | P0 | Cadastro cria sessão imediata gerenciada pelo Better Auth |
 | FR-02 | Onboarding curto | P0 | Nome/objetivo/áreas/fuso + 1 a 3 hábitos iniciais |
 | FR-03 | Jornada de 66 dias | P0 | Uma jornada ativa por usuário; dia calculado pelo calendário local |
 | FR-04 | CRUD de hábitos | P0 | Criar, editar, arquivar e reativar; máximo de 5 ativos na primeira versão |
@@ -205,7 +205,7 @@ Eventos possíveis: `account_created`, `onboarding_completed`, `habit_created`, 
 
 ## IA / navegação
 
-- Público: `/` (landing), `/entrar`, `/cadastro`, `/esqueci-senha`, `/redefinir-senha`, `/verificar-email`, `/privacidade`, `/termos`.
+- Público: `/` (landing), `/entrar`, `/cadastro`, `/privacidade`, `/termos`.
 - Protegido: `/onboarding`, `/app` (Hoje), `/app/habitos`, `/app/progresso`, `/app/diario`, `/app/configuracoes`.
 - Mobile: barra inferior com Hoje / Hábitos / Progresso / Diário; Configurações no avatar.
 - Desktop: sidebar discreta com as mesmas seções.
@@ -214,8 +214,8 @@ Eventos possíveis: `account_created`, `onboarding_completed`, `habit_created`, 
 
 ### Primeiro acesso
 
-`Landing → Cadastro → verificar e-mail → Onboarding (áreas → objetivo → hábitos) → Hoje`.
-Falha de envio de e-mail oferece reenviar sem revelar existência de outras contas. Se sessão válida sem onboarding, redirecionar para onboarding. Se onboarding concluído, ir para Hoje.
+`Landing → Cadastro → sessão imediata → Onboarding (áreas → objetivo → hábitos) → Hoje`.
+Cadastro cria a sessão e leva diretamente ao onboarding. Se sessão válida sem onboarding, redirecionar para onboarding. Se onboarding concluído, ir para Hoje.
 
 ### Missão diária
 
@@ -320,7 +320,7 @@ Alterar calendário não deve alterar completions históricas. Arquivar preserva
 
 - **Next.js 16 estável**, App Router, TypeScript estrito, Node.js runtime nas rotas com Postgres.
 - **React Server Components** por padrão; Client Components somente para formulário, gráfico interativo e estados otimistas.
-- **Better Auth** para credenciais, verificação de e-mail, sessão e recuperação; nenhuma tabela de sessão custom.
+- **Better Auth** para credenciais e sessão; nenhuma tabela de sessão custom. A V1 não verifica o e-mail nem envia recuperação de senha.
 - **PostgreSQL gerenciado, provedor escolhido para Vercel**; **Drizzle ORM + drizzle-kit** para persistência e migrations. Não usar Neon.
 - **Tailwind CSS + shadcn/ui**; **Zod** para schemas de entrada/saída; **React Hook Form** na UI.
 - **Vitest + Testing Library** (unit/component) e **Playwright** (E2E).
@@ -338,7 +338,6 @@ flowchart TD
     SVC --> REP[Repositories Drizzle]
     AUTH --> DB[(PostgreSQL do ambiente)]
     REP --> DB
-    AUTH --> EMAIL[Provedor de e-mail transacional]
 ```
 
 ## Limites e fluxo de dependência
@@ -361,9 +360,6 @@ src/
     (marketing)/page.tsx
     (auth)/entrar/page.tsx
     (auth)/cadastro/page.tsx
-    (auth)/esqueci-senha/page.tsx
-    (auth)/redefinir-senha/page.tsx
-    (auth)/verificar-email/page.tsx
     (protected)/onboarding/page.tsx
     (protected)/app/page.tsx
     (protected)/app/habitos/page.tsx
@@ -587,10 +583,9 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg" }),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
-    // configurar sendResetPassword usando provedor transacional
+    requireEmailVerification: false,
+    autoSignIn: true,
   },
-  // configurar emailVerification.sendVerificationEmail, sendOnSignUp
 });
 ```
 
@@ -620,13 +615,11 @@ Converter o erro no boundary HTTP para `401` estável; não retornar stack trace
 
 ## Estratégia de autenticação (AC-AUTH)
 
-- Cadastro e login com e-mail + senha; Google OAuth P1, não configurar sem credenciais.
-- Verificação de e-mail obrigatória antes de acesso ao produto.
-- Recuperação de senha por link de uso único via provedor transacional (Resend ou equivalente).
+- Cadastro e login com e-mail + senha; cadastro cria sessão imediatamente. Google OAuth P1, não configurar sem credenciais.
+- V1 não exige confirmação do e-mail e não oferece recuperação de senha por e-mail.
 - Logout invalida sessão. Política de sessão e expiração explícitas conforme documentação da versão instalada.
 - Autenticação em `app` não é autorização em `api`: `proxy.ts` pode redirecionar, mas cada Route Handler e cada Server Action deve validar sessão.
 - Não usar `getSessionCookie()` sozinho para autorizar: só verifica existência de cookie.
-- E-mails de auth nunca expõem se uma conta existe (respostas genéricas de recuperação).
 - Se autenticação for disparada por Server Actions, verificar o plugin `nextCookies`; usando diretamente o cliente Better Auth e handler `/api/auth/*` a estratégia de cookies é gerenciada pelo próprio fluxo HTTP.
 
 ## Controles obrigatórios
@@ -635,7 +628,7 @@ Converter o erro no boundary HTTP para `401` estável; não retornar stack trace
 |---|---|
 | IDOR | `habitId`, `journeyId`, `reflectionId` sempre consultados junto com `user_id = session.user.id` |
 | Input | Zod no servidor para todos os payloads, limites de tamanho e enums |
-| Rate limit | Aplicar a signup/login/reset com recursos do Better Auth e, se necessário, mecanismo compartilhado; limites por IP/identidade, não memória por instância |
+| Rate limit | Aplicar a signup/login com recursos do Better Auth e, se necessário, mecanismo compartilhado; limites por IP/identidade, não memória por instância |
 | CSRF | Manter proteções internas do Better Auth e restrições de origem; nunca desabilitar verificação indiscriminadamente |
 | XSS | Escapar renderização de conteúdo do usuário; texto do diário sem HTML rico |
 | Cookies | Secure em HTTPS, HttpOnly e SameSite conforme Better Auth; não guardar token em localStorage |
@@ -681,7 +674,7 @@ Base: `/api/v1`. Auth é tratada pelo Better Auth em `/api/auth/[...all]` (não 
 
 ## Convenções
 
-- **Autorização:** todas as rotas abaixo exigem sessão válida e e-mail verificado.
+- **Autorização:** todas as rotas abaixo exigem sessão válida.
 - **Content-Type:** `application/json; charset=utf-8`. Datas de calendário `YYYY-MM-DD`; instantes ISO 8601 UTC.
 - **Resposta de sucesso:** `{ "data": ... }`. **Erro:** `{ "error": { "code": "CODE", "message": "Texto seguro", "requestId": "..." } }`.
 - **Status:** `200` sucesso idempotente/leitura, `201` criação, `400` formato, `401` sem sessão, `403` ação proibida, `404` não pertence/existe, `409` conflito de negócio, `422` validação semântica, `429` rate limit, `500` inesperado.
@@ -786,7 +779,7 @@ Todo requisito P0 tem: (1) cenário de aceite automatizável, (2) teste de unida
 
 ### AC-01 — Cadastro e onboarding (`FR-01`,`FR-02`,`FR-03`)
 
-**Dado** que estou sem conta, **quando** cadastro-me e verifico meu e-mail, **então** posso entrar e sou redirecionado ao onboarding. **Quando** informo objetivo e dois hábitos válidos, **então** uma jornada e dois hábitos são persistidos, e visualizo o dashboard.
+**Dado** que estou sem conta, **quando** cadastro-me com e-mail e senha válidos, **então** minha sessão é criada e sou redirecionado ao onboarding sem confirmação de e-mail. **Quando** informo objetivo e dois hábitos válidos, **então** uma jornada e dois hábitos são persistidos, e visualizo o dashboard.
 
 **Erro:** cadastro inválido não cria jornada; tentativa concorrente de finalizar onboarding não cria duas jornadas.
 
@@ -885,14 +878,14 @@ Cada slice precisa resultar em comportamento navegável e testável, não apenas
 
 **Gate S0:** build limpo; preview carrega landing; migration repetível a partir de banco vazio.
 
-## S1 — Auth completo
+## S1 — Auth essencial
 
-Estado da implementação (26/10/2026): Better Auth, schema Drizzle gerado, formulário de cadastro/login, confirmação e reenvio de e-mail, redefinição de senha, logout e proteção server-side de onboarding foram adicionados. O app usa conexão PostgreSQL padrão por `DATABASE_URL`; o provedor e as variáveis do Vercel ainda não foram configurados. A validação com banco e SMTP reais será feita no ambiente Vercel.
+Estado da implementação (26/10/2026): Better Auth, schema Drizzle gerado, cadastro com acesso imediato, login, logout e proteção server-side por sessão estão implementados. A V1 não inclui confirmação de e-mail nem recuperação de senha. A aplicação está publicada na Vercel e conectada ao Supabase; ainda falta aplicar as migrations de produção e validar o fluxo com o banco.
 
 - [ ] `T-101` Configurar Better Auth + schema gerado + adapter Drizzle.
-- [ ] `T-102` Signup/signin/logout com verificação de e-mail e reset de senha via provedor.
+- [ ] `T-102` Signup cria sessão imediatamente; signin/logout por e-mail e senha.
 - [ ] `T-103` Proteger rotas, server actions e handlers por sessão validada.
-- [ ] `T-104` Testes de sessão expirada, cookie inválido e usuário não verificado.
+- [ ] `T-104` Testes de sessão expirada, cookie inválido e usuário autenticado sem confirmação de e-mail.
 
 **Gate S1:** `AC-01` (parte auth) e `AC-07` (auth) passam.
 
@@ -951,7 +944,7 @@ Estado do S5 (26/10/2026): XP, cálculo de consistência semanal com versões de
 
 **Gate S6:** `AC-10`, `AC-11`, runbook e release checklist completos.
 
-Estado parcial do S6 (26/10/2026): perfil (nome e fuso), exportação JSON sem credenciais, exclusão confirmada com senha pelo endpoint nativo do Better Auth, páginas iniciais de privacidade/termos e PWA com fallback offline estão implementados no código. O service worker é restrito a arquivos estáticos e não intercepta API, onboarding ou páginas privadas para cache. Também foram adicionados `GET /api/health`, headers HTTP básicos e um runbook/checklist de operação Vercel. O projeto `reset` foi publicado na Vercel e conectado ao projeto Supabase `reset`; a integração sincroniza as variáveis do banco em Production. O build de produção passou após corrigir erros TypeScript. O segredo Better Auth, SMTP, migrations de produção, ambientes Preview/Development, validação AC-10, instalação, acessibilidade, headers, alertas e smoke tests permanecem pendentes. O aviso público ainda declara pendentes a identificação/contato do controlador, região/provedor e retenção de backups; por isso, não é documento final para lançamento.
+Estado parcial do S6 (26/10/2026): perfil (nome e fuso), exportação JSON sem credenciais, exclusão confirmada com senha pelo endpoint nativo do Better Auth, páginas iniciais de privacidade/termos e PWA com fallback offline estão implementados no código. O service worker é restrito a arquivos estáticos e não intercepta API, onboarding ou páginas privadas para cache. Também foram adicionados `GET /api/health`, headers HTTP básicos e um runbook/checklist de operação Vercel. O projeto `reset` foi publicado na Vercel e conectado ao projeto Supabase `reset`; a integração sincroniza as variáveis do banco em Production. O segredo Better Auth e a URL pública estão configurados em Production. Migrations de produção, ambientes Preview/Development, validação AC-10, instalação, acessibilidade, headers, alertas e smoke tests permanecem pendentes. A V1 não usa envio de e-mail de autenticação. O aviso público ainda declara pendentes a identificação/contato do controlador e retenção de backups; por isso, não é documento final para lançamento.
 
 ## Definition of Done por tarefa
 
@@ -967,8 +960,7 @@ Estado parcial do S6 (26/10/2026): perfil (nome e fuso), exportação JSON sem c
 1. **R1:** autorização com IDs de recurso — testar antes de liberar CRUD.
 2. **R2:** cálculo de data local — construir serviço e testes em S0/S3, não espalhar `new Date()` nos componentes.
 3. **R3:** consistência do histórico ao editar agenda — versionar antes de implementar relatório.
-4. **R4:** e-mail transacional e domínios confiáveis — validar em preview e produção.
-5. **R5:** exclusão de dados e FKs Better Auth — desenhar e testar em banco isolado antes do go-live.
+4. **R4:** exclusão de dados e FKs Better Auth — desenhar e testar em banco isolado antes do go-live.
 
 ---
 
@@ -980,7 +972,6 @@ Estado parcial do S6 (26/10/2026): perfil (nome e fuso), exportação JSON sem c
 
 - 1 projeto Next.js na Vercel (produção + previews de PR).
 - 1 projeto PostgreSQL de produção no Supabase, conectado ao projeto Vercel existente pela integração oficial; o banco de desenvolvimento/preview separado ainda precisa ser configurado. Neon está excluído.
-- Provedor de e-mail transacional com domínio autenticado (ex.: Resend), sem e-mails de produção disparados em preview para endereços aleatórios.
 - DNS / domínio de produto próprio e TLS em produção.
 - GitHub Actions valida o repositório; a integração Vercel cuida do deploy.
 
@@ -1005,8 +996,6 @@ Estado parcial do S6 (26/10/2026): perfil (nome e fuso), exportação JSON sem c
 | `BETTER_AUTH_SECRET` | Server | segredo longo gerado criptograficamente |
 | `BETTER_AUTH_URL` | Server | URL absoluta da origem da app por ambiente |
 | `BETTER_AUTH_TRUSTED_ORIGINS` | Server | se necessário, lista explícita de origens |
-| `RESEND_API_KEY` | Server | credencial e-mail transacional (ou outro provider) |
-| `EMAIL_FROM` | Server | remetente verificado |
 | `NEXT_PUBLIC_APP_URL` | Client/public | apenas URL pública, nunca credenciais |
 
 O `.env.example` contém placeholders e deve ser copiado localmente para `.env.local`; `.env.local` não deve entrar no Git. No deploy, configurar no dashboard Vercel por ambiente.
@@ -1048,7 +1037,7 @@ Nenhuma rotina periódica é necessária para calcular Hoje, streak ou fim da jo
 ## Runbook básico
 
 1. Incidente P1: desabilitar release pelo rollback Vercel, confirmar compatibilidade da migration e restaurar banco somente com procedimento aprovado.
-2. E-mail indisponível: manter mensagens de erro úteis, alarmar; não desabilitar verificação por conveniência.
+2. E-mail de autenticação: não utilizado na V1.
 3. Banco indisponível: retornar 503 de maneira controlada; não tentar gravar localmente na função serverless.
 4. Falha de autenticação após deploy: checar `BETTER_AUTH_URL`, trusted origins, cookies, DNS e variáveis do ambiente.
 
